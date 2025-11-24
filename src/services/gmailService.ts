@@ -314,9 +314,9 @@ export const fetchRecentEmails = async (maxResults: number = 10): Promise<EmailD
     console.log(`📧 Starting Gmail sync: fetching up to ${maxResults} emails...`);
     const accessToken = await getGmailAccessToken();
 
-    // List messages
+    // List messages (only last 7 days)
     const listResponse = await fetch(
-      `${GMAIL_API_BASE}/users/me/messages?maxResults=${maxResults}&q=is:unread category:primary`,
+      `${GMAIL_API_BASE}/users/me/messages?maxResults=${maxResults}&q=is:unread category:primary newer_than:7d`,
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -396,8 +396,8 @@ export const fetchEmailsFromDomain = async (
     console.log(`📧 Starting Gmail sync for domain "${domain}": fetching up to ${maxResults} emails...`);
     const accessToken = await getGmailAccessToken();
 
-    // Search for emails from domain
-    const query = `from:@${domain} is:unread`;
+    // Search for emails from domain (only last 7 days)
+    const query = `from:@${domain} is:unread newer_than:7d`;
     const listResponse = await fetch(
       `${GMAIL_API_BASE}/users/me/messages?maxResults=${maxResults}&q=${encodeURIComponent(query)}`,
       {

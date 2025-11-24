@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../store/useStore';
-import { Plus, TrendingUp, Calendar, Tag, CheckCircle2, Clock, Mail, Loader } from 'lucide-react';
+import { Plus, TrendingUp, Tag, CheckCircle2, Clock, Mail, Loader } from 'lucide-react';
 import AddTransactionModal from '../components/AddTransactionModal';
 import EditTransactionModal from '../components/EditTransactionModal';
 import TransactionApprovalModal from '../components/TransactionApprovalModal';
@@ -34,13 +34,45 @@ export default function Transactions() {
     }).format(Math.abs(amount));
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDateHeader = (dateString: string) => {
     const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric',
-    }).format(date);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    // Reset time for comparison
+    const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const yesterdayOnly = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+    
+    if (dateOnly.getTime() === todayOnly.getTime()) {
+      return 'Today';
+    } else if (dateOnly.getTime() === yesterdayOnly.getTime()) {
+      return 'Yesterday';
+    } else {
+      return new Intl.DateTimeFormat('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined,
+      }).format(date);
+    }
   };
+
+  // Group transactions by date
+  const groupedTransactions = transactions.reduce((groups, transaction) => {
+    const date = transaction.date;
+    if (!groups[date]) {
+      groups[date] = [];
+    }
+    groups[date].push(transaction);
+    return groups;
+  }, {} as Record<string, typeof transactions>);
+
+  // Sort dates in descending order (newest first)
+  const sortedDates = Object.keys(groupedTransactions).sort((a, b) => 
+    new Date(b).getTime() - new Date(a).getTime()
+  );
 
   const getCategoryName = (categoryId: string | null) => {
     if (!categoryId) return 'Uncategorized';
@@ -322,67 +354,75 @@ export default function Transactions() {
           </div>
         )}
 
-        <div className="space-y-3">
-          {transactions.map((transaction) => (
-            <div
-              key={transaction.id}
-              className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 cursor-pointer active:scale-[0.99] select-none"
-              onClick={() => handleTransactionClick(transaction)}
-            >
-              <div className="flex items-center justify-between">
-                {/* Left side: Transaction details */}
-                <div className="flex-1 min-w-0">
-                  {/* Top row: Date and Status */}
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium">
-                      <Calendar className="w-3.5 h-3.5" />
-                      {formatDate(transaction.date)}
+        <div className="space-y-6">
+          {sortedDates.map((date) => (
+            <div key={date} className="space-y-3">
+              {/* Date Header */}
+              <div className="sticky top-16 z-10 bg-gray-50/95 backdrop-blur-sm py-2 -mx-4 px-4 border-b border-gray-200">
+                <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider">
+                  {formatDateHeader(date)}
+                </h3>
+              </div>
+
+              {/* Transactions for this date */}
+              {groupedTransactions[date].map((transaction) => (
+                <div
+                  key={transaction.id}
+                  className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 cursor-pointer active:scale-[0.99] select-none"
+                  onClick={() => handleTransactionClick(transaction)}
+                >
+                  <div className="flex items-center justify-between">
+                    {/* Left side: Transaction details */}
+                    <div className="flex-1 min-w-0">
+                      {/* Top row: Status */}
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center gap-1.5">
+                          {transaction.status === 'cleared' ? (
+                            <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
+                          ) : (
+                            <Clock className="w-3.5 h-3.5 text-yellow-600" />
+                          )}
+                          <span
+                            className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                              transaction.status === 'cleared'
+                                ? 'bg-green-100 text-green-700'
+                                : 'bg-yellow-100 text-yellow-700'
+                            }`}
+                          >
+                            {transaction.status}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Payee name */}
+                      <div className="font-bold text-gray-800 truncate mb-1 text-base">
+                        {transaction.payee}
+                      </div>
+
+                      {/* Category */}
+                      <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                        <Tag className="w-3.5 h-3.5" />
+                        <span className="truncate">{getCategoryName(transaction.category_id)}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      {transaction.status === 'cleared' ? (
-                        <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
-                      ) : (
-                        <Clock className="w-3.5 h-3.5 text-yellow-600" />
-                      )}
-                      <span
-                        className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                          transaction.status === 'cleared'
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-yellow-100 text-yellow-700'
+
+                    {/* Right side: Amount */}
+                    <div className="ml-4 text-right flex-shrink-0">
+                      <div
+                        className={`text-xl font-bold tabular-nums ${
+                          transaction.amount >= 0 ? 'text-green-600' : 'text-red-600'
                         }`}
                       >
-                        {transaction.status}
-                      </span>
+                        {transaction.amount >= 0 ? '+' : '-'}
+                        {formatCurrency(transaction.amount)}
+                      </div>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mt-0.5">
+                        {transaction.amount >= 0 ? 'Income' : 'Expense'}
+                      </p>
                     </div>
                   </div>
-
-                  {/* Payee name */}
-                  <div className="font-bold text-gray-800 truncate mb-1 text-base">
-                    {transaction.payee}
-                  </div>
-
-                  {/* Category */}
-                  <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                    <Tag className="w-3.5 h-3.5" />
-                    <span className="truncate">{getCategoryName(transaction.category_id)}</span>
-                  </div>
                 </div>
-
-                {/* Right side: Amount */}
-                <div className="ml-4 text-right flex-shrink-0">
-                  <div
-                    className={`text-xl font-bold tabular-nums ${
-                      transaction.amount >= 0 ? 'text-green-600' : 'text-red-600'
-                    }`}
-                  >
-                    {transaction.amount >= 0 ? '+' : '-'}
-                    {formatCurrency(transaction.amount)}
-                  </div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mt-0.5">
-                    {transaction.amount >= 0 ? 'Income' : 'Expense'}
-                  </p>
-                </div>
-              </div>
+              ))}
             </div>
           ))}
         </div>

@@ -147,36 +147,45 @@ export default function TransactionApprovalModal({
                     <p className="text-xs text-gray-600 ml-6">{email.subject}</p>
                   </div>
                   <div className="flex gap-2">
-                    {!isApproved && !isDenied && (
-                      <>
-                        <button
-                          onClick={() => handleApprove(index)}
-                          disabled={processing}
-                          className="p-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
-                          title="Approve"
-                        >
-                          <CheckCircle2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeny(index)}
-                          disabled={processing}
-                          className="p-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
-                          title="Deny"
-                        >
-                          <XCircle className="w-4 h-4" />
-                        </button>
-                      </>
-                    )}
-                    {isApproved && (
-                      <div className="flex items-center gap-1 text-green-700">
-                        <CheckCircle2 className="w-5 h-5" />
-                        <span className="text-sm font-semibold">Approved</span>
-                      </div>
-                    )}
-                    {isDenied && (
-                      <div className="flex items-center gap-1 text-red-700">
-                        <XCircle className="w-5 h-5" />
-                        <span className="text-sm font-semibold">Denied</span>
+                    <button
+                      onClick={() => isApproved ? handleDeny(index) : handleApprove(index)}
+                      disabled={processing}
+                      className={`p-2 rounded-lg transition-colors disabled:opacity-50 ${
+                        isApproved
+                          ? 'bg-green-600 text-white hover:bg-green-700'
+                          : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                      }`}
+                      title={isApproved ? "Click to un-approve" : "Approve"}
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => isDenied ? handleApprove(index) : handleDeny(index)}
+                      disabled={processing}
+                      className={`p-2 rounded-lg transition-colors disabled:opacity-50 ${
+                        isDenied
+                          ? 'bg-red-600 text-white hover:bg-red-700'
+                          : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                      }`}
+                      title={isDenied ? "Click to approve" : "Deny"}
+                    >
+                      <XCircle className="w-4 h-4" />
+                    </button>
+                    {(isApproved || isDenied) && (
+                      <div className={`flex items-center gap-1 px-2 ${
+                        isApproved ? 'text-green-700' : 'text-red-700'
+                      }`}>
+                        {isApproved ? (
+                          <>
+                            <CheckCircle2 className="w-4 h-4" />
+                            <span className="text-xs font-semibold">Approved</span>
+                          </>
+                        ) : (
+                          <>
+                            <XCircle className="w-4 h-4" />
+                            <span className="text-xs font-semibold">Denied</span>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>

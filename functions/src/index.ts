@@ -194,7 +194,7 @@ async function fetchEmailsFromDomain(
   domain: string,
   maxResults: number = 50
 ): Promise<EmailData[]> {
-  const query = `from:@${domain} is:unread`;
+  const query = `from:@${domain} is:unread newer_than:7d`;
   const listResponse = await fetch(
     `${GMAIL_API_BASE}/users/me/messages?maxResults=${maxResults}&q=${encodeURIComponent(query)}`,
     {
