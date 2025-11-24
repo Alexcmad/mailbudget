@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { X, Trash2 } from 'lucide-react';
+import { Calendar, Trash2 } from 'lucide-react';
 import { updateTransaction, deleteTransaction } from '../services/firestore.ts';
 import { useAuth } from '../hooks/useAuth.ts';
 import { useStore } from '../store/useStore.ts';
 import type { Transaction } from '../types/index.ts';
+import { ModalOverlay, ModalHeader, ModalBody, ModalFooter, InputGroup, StyledInput, StyledSelect, StyledTextarea, StyledDateInput } from './ModalComponents';
 
 interface EditTransactionModalProps {
   isOpen: boolean;
@@ -109,85 +110,59 @@ export default function EditTransactionModal({ isOpen, onClose, transaction }: E
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full my-8">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-xl font-semibold">Edit Transaction</h2>
-          <button
-            onClick={handleClose}
-            disabled={loading}
-            className="p-1 hover:bg-gray-100 rounded disabled:opacity-50"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+    <ModalOverlay onClose={handleClose}>
+      <ModalHeader title="Edit Transaction" onClose={handleClose} />
+      <form onSubmit={handleSubmit}>
+        <ModalBody>
           {error && (
-            <div className="bg-red-50 text-red-600 p-3 rounded text-sm">
+            <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-sm">
               {error}
             </div>
           )}
 
-          <div>
-            <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-1">
-              Date
-            </label>
-            <input
-              type="date"
-              id="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              disabled={loading}
-              required
-            />
-          </div>
+          <InputGroup label="Date">
+            <div className="relative">
+              <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none z-10" />
+              <StyledDateInput
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                disabled={loading}
+                className="pl-12"
+                required
+              />
+            </div>
+          </InputGroup>
 
-          <div>
-            <label htmlFor="payee" className="block text-sm font-medium text-gray-700 mb-1">
-              Payee
-            </label>
-            <input
-              type="text"
-              id="payee"
+          <InputGroup label="Payee">
+            <StyledInput
               value={payee}
               onChange={(e) => setPayee(e.target.value)}
               placeholder="e.g., Starbucks, Amazon"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={loading}
               required
             />
-          </div>
+          </InputGroup>
 
-          <div>
-            <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-1">
-              Amount (negative for expense, positive for income)
-            </label>
-            <input
-              type="number"
-              id="amount"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="-25.00"
-              step="0.01"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              disabled={loading}
-              required
-            />
-          </div>
+          <InputGroup label="Amount (negative for expense, positive for income)">
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium z-10">$</span>
+              <StyledInput
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="-25.00"
+                step="0.01"
+                disabled={loading}
+                className="pl-11"
+                required
+              />
+            </div>
+          </InputGroup>
 
-          <div>
-            <label htmlFor="account" className="block text-sm font-medium text-gray-700 mb-1">
-              Account
-            </label>
-            <select
-              id="account"
+          <InputGroup label="Account">
+            <StyledSelect
               value={accountId}
               onChange={(e) => setAccountId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={loading}
             >
               <option value="">Select an account...</option>
@@ -196,18 +171,13 @@ export default function EditTransactionModal({ isOpen, onClose, transaction }: E
                   {account.name}
                 </option>
               ))}
-            </select>
-          </div>
+            </StyledSelect>
+          </InputGroup>
 
-          <div>
-            <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
-              Category
-            </label>
-            <select
-              id="category"
+          <InputGroup label="Category (optional)">
+            <StyledSelect
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={loading}
             >
               <option value="">Uncategorized</option>
@@ -216,72 +186,58 @@ export default function EditTransactionModal({ isOpen, onClose, transaction }: E
                   {category.group} - {category.name}
                 </option>
               ))}
-            </select>
-          </div>
+            </StyledSelect>
+          </InputGroup>
 
-          <div>
-            <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
-              Status
-            </label>
-            <select
-              id="status"
+          <InputGroup label="Status">
+            <StyledSelect
               value={status}
               onChange={(e) => setStatus(e.target.value as 'cleared' | 'uncleared' | 'reconciled')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={loading}
             >
               <option value="uncleared">Uncleared</option>
               <option value="cleared">Cleared</option>
               <option value="reconciled">Reconciled</option>
-            </select>
-          </div>
+            </StyledSelect>
+          </InputGroup>
 
-          <div>
-            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">
-              Notes (optional)
-            </label>
-            <textarea
-              id="notes"
+          <InputGroup label="Notes (optional)">
+            <StyledTextarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Add any notes..."
-              rows={2}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              rows={3}
               disabled={loading}
             />
-          </div>
-
-          {/* Footer */}
-          <div className="flex gap-2 pt-2">
-            <button
-              type="button"
-              onClick={handleDelete}
-              disabled={loading}
-              className="px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 disabled:opacity-50 flex items-center gap-2"
-            >
-              <Trash2 className="w-4 h-4" />
-              Delete
-            </button>
-            <div className="flex-1 flex gap-2">
-              <button
-                type="button"
-                onClick={handleClose}
-                disabled={loading}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
-              >
-                {loading ? 'Saving...' : 'Save'}
-              </button>
-            </div>
-          </div>
-        </form>
-      </div>
-    </div>
+          </InputGroup>
+        </ModalBody>
+        <ModalFooter>
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={loading}
+            className="px-4 py-2.5 rounded-xl border border-red-300 text-red-600 font-semibold hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete
+          </button>
+          <button
+            type="button"
+            onClick={handleClose}
+            disabled={loading}
+            className="flex-1 px-4 py-2.5 rounded-xl border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="flex-1 px-4 py-2.5 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Saving...' : 'Save Changes'}
+          </button>
+        </ModalFooter>
+      </form>
+    </ModalOverlay>
   );
 }
