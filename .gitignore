@@ -44,4 +44,7 @@ lerna-debug.log*
 firebase-debug.log
 firestore-debug.log
 ui-debug.log
-.firebaserc
+
+# Functions build output
+functions/lib
+functions/node_modules
