@@ -33,15 +33,14 @@ export const parseEmailWithGemini = async (
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
-    // Format email received date for fallback
-    const fallbackDate = emailReceivedDate 
-      ? emailReceivedDate.toISOString().split('T')[0]
-      : new Date().toISOString().split('T')[0];
-
+    const currentDate = new Date().toISOString().split('T')[0];
+    const receivedDateStr = emailReceivedDate ? emailReceivedDate.toISOString().split('T')[0] : currentDate;
+    
     const prompt = `You are a financial transaction parser. Analyze this bank notification email and extract transaction details.
 
 Email Subject: ${emailSubject || 'N/A'}
 Email Received Date: ${emailReceivedDate ? emailReceivedDate.toISOString() : 'N/A'}
+Current Date: ${currentDate}
 
 Email Content:
 ${emailContent}
@@ -57,11 +56,27 @@ Extract the following information and respond ONLY with a valid JSON object (no 
   "confidence": "high" | "medium" | "low" (high if all details are clear, medium if some details inferred, low if uncertain)"
 }
 
-CRITICAL DATE RULES:
-1. FIRST PRIORITY: Extract the transaction date from the email body/content (look for phrases like "Transaction Date:", "Date:", "On [date]", "Purchased on", etc.)
-2. SECOND PRIORITY: If no transaction date is found in the email body, use the Email Received Date provided above: ${fallbackDate}
-3. NEVER use today's date unless the email was received today and contains no date information
-4. The date should reflect when the actual transaction occurred, not when the email was sent/received
+CRITICAL DATE EXTRACTION RULES - READ CAREFULLY:
+
+1. FIRST PRIORITY - Extract transaction date from email body:
+   - Look for explicit date fields: "Transaction Date:", "Date:", "Transaction on", "Purchased on", "Date of transaction", "Transaction occurred on"
+   - Look for date patterns in the text: "Nov 20", "November 20, 2024", "20/11/2024", "2024-11-20", "11/20/2024"
+   - Look for relative dates: "yesterday", "2 days ago", "last week" (calculate from email received date)
+   - The transaction date is usually DIFFERENT from the email received date
+   - Example: If email says "Transaction Date: November 15, 2024" but email was received Nov 23, use "2024-11-15"
+
+2. SECOND PRIORITY - Use email received date ONLY if no transaction date found:
+   - If you cannot find ANY transaction date in the email body, use: ${receivedDateStr}
+   - This is the date the email was received, which may be close to the transaction date
+
+3. NEVER use current date (${currentDate}) unless:
+   - The email was received today (${receivedDateStr} === ${currentDate})
+   - AND no transaction date is found in the email body
+   - AND no email received date is available
+
+4. Date format must be YYYY-MM-DD (e.g., "2024-11-15", not "Nov 15" or "11/15/2024")
+
+IMPORTANT: The transaction date is when the purchase/transaction actually happened, NOT when the email was sent or received. Bank emails are often sent hours or days after the transaction occurred.
 
 Other Rules:
 - Amount must be NEGATIVE for purchases, debits, expenses, withdrawals, and fees
