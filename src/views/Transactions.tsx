@@ -5,7 +5,7 @@ import AddTransactionModal from '../components/AddTransactionModal';
 import EditTransactionModal from '../components/EditTransactionModal';
 import TransactionApprovalModal from '../components/TransactionApprovalModal';
 import type { Transaction } from '../types/index.ts';
-import { fetchRecentEmails, fetchEmailsFromDomain, markEmailAsRead } from '../services/gmailService';
+import { fetchEmailsFromDomain, markEmailAsRead } from '../services/gmailService';
 import { processEmailTransaction, findAccountByEmailDomain, type EmailData } from '../services/emailParser';
 import { parseEmailWithGemini, type ParsedTransaction } from '../services/gemini';
 import { useAuth } from '../hooks/useAuth';

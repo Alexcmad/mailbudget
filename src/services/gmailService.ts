@@ -18,6 +18,7 @@ interface GmailMessage {
     headers: Array<{ name: string; value: string }>;
     parts?: Array<{ mimeType: string; body: { data: string } }>;
     body?: { data: string };
+    mimeType?: string;
   };
   internalDate: string;
 }

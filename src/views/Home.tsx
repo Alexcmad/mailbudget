@@ -1,6 +1,5 @@
 import { useStore } from '../store/useStore';
 import { TrendingUp, Wallet, AlertCircle, CheckCircle2, Clock, ArrowRight, CreditCard } from 'lucide-react';
-import type { Category, Account, Transaction } from '../types/index.ts';
 
 export default function Home() {
   const { categories, accounts, transactions } = useStore();

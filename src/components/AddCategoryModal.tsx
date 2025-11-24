@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { addCategory } from '../services/firestore.ts';
 import { useAuth } from '../hooks/useAuth.ts';
-import { ModalOverlay, ModalHeader, ModalBody, ModalFooter, InputGroup, StyledInput, StyledSelect } from './ModalComponents';
+import { ModalOverlay, ModalHeader, ModalBody, ModalFooter, InputGroup, StyledInput } from './ModalComponents';
 
 interface AddCategoryModalProps {
   isOpen: boolean;

@@ -13,7 +13,7 @@ const firebaseConfig = {
 
 // Validate Firebase config
 const missingVars = Object.entries(firebaseConfig)
-  .filter(([key, value]) => !value)
+  .filter(([, value]) => !value)
   .map(([key]) => key.replace('VITE_', ''));
 
 if (missingVars.length > 0) {

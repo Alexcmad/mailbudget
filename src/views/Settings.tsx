@@ -3,7 +3,7 @@ import { Link as LinkIcon, Mail, Trash2, Save, XCircle, Loader, CreditCard, Chec
 import { useStore } from '../store/useStore.ts';
 import { useAuth } from '../hooks/useAuth.ts';
 import { updateAccount } from '../services/firestore.ts';
-import { authorizeGmailAccess, isGmailAuthorized, fetchUniqueSenderDomains, fetchEmailsFromDomain, fetchRecentEmails, markEmailAsRead } from '../services/gmailService.ts';
+import { authorizeGmailAccess, isGmailAuthorized, fetchUniqueSenderDomains, fetchEmailsFromDomain, markEmailAsRead } from '../services/gmailService.ts';
 import DomainSearchDropdown from '../components/DomainSearchDropdown.tsx';
 import { processEmailTransaction } from '../services/emailParser.ts';
 

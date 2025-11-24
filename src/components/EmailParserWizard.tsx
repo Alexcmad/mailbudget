@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Loader2, CheckCircle2, AlertCircle, Sparkles, Mail, ChevronDown } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle, Sparkles, Mail } from 'lucide-react';
 import { ModalOverlay, ModalHeader, ModalBody, ModalFooter, StyledSelect } from './ModalComponents';
 import { addTransaction } from '../services/firestore.ts';
 import { useAuth } from '../hooks/useAuth.ts';
 import { useStore } from '../store/useStore.ts';
-import type { Category } from '../types/index.ts';
 
 interface EmailParserWizardProps {
   isOpen: boolean;
@@ -207,23 +206,26 @@ export default function EmailParserWizard({ isOpen, onClose }: EmailParserWizard
       <ModalHeader title="Import Transactions" onClose={onClose} />
       
       {step === 'scanning' && (
-        <ModalBody className="flex flex-col items-center justify-center py-12">
-          <div className="relative mb-4">
-            <div className="absolute inset-0 bg-blue-100 rounded-full animate-ping opacity-75"></div>
-            <div className="relative bg-blue-50 p-4 rounded-full">
-              <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+        <ModalBody>
+          <div className="flex flex-col items-center justify-center py-12">
+            <div className="relative mb-4">
+              <div className="absolute inset-0 bg-blue-100 rounded-full animate-ping opacity-75"></div>
+              <div className="relative bg-blue-50 p-4 rounded-full">
+                <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+              </div>
             </div>
+            <h3 className="text-lg font-bold text-gray-800 mb-2">Scanning Inbox...</h3>
+            <p className="text-gray-500 text-center text-sm max-w-xs">
+              Connecting to mail server and looking for recent transaction alerts.
+            </p>
           </div>
-          <h3 className="text-lg font-bold text-gray-800 mb-2">Scanning Inbox...</h3>
-          <p className="text-gray-500 text-center text-sm max-w-xs">
-            Connecting to mail server and looking for recent transaction alerts.
-          </p>
         </ModalBody>
       )}
 
       {step === 'review' && (
         <>
-          <ModalBody className="max-h-[60vh] overflow-y-auto bg-gray-50/50">
+          <ModalBody>
+            <div className="max-h-[60vh] overflow-y-auto bg-gray-50/50 -m-6 p-6">
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-sm mb-4">
                 {error}
@@ -316,6 +318,7 @@ export default function EmailParserWizard({ isOpen, onClose }: EmailParserWizard
                 ))}
               </div>
             )}
+            </div>
           </ModalBody>
 
           <ModalFooter>
