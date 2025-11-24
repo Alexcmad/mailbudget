@@ -23,7 +23,8 @@ export interface ParsedTransaction {
  */
 export const parseEmailWithGemini = async (
   emailContent: string,
-  emailSubject?: string
+  emailSubject?: string,
+  emailReceivedDate?: Date
 ): Promise<ParsedTransaction | null> => {
   if (!genAI) {
     throw new Error('Gemini API not configured. Please set VITE_GEMINI_API_KEY in your .env file.');
@@ -32,9 +33,15 @@ export const parseEmailWithGemini = async (
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
+    // Format email received date for fallback
+    const fallbackDate = emailReceivedDate 
+      ? emailReceivedDate.toISOString().split('T')[0]
+      : new Date().toISOString().split('T')[0];
+
     const prompt = `You are a financial transaction parser. Analyze this bank notification email and extract transaction details.
 
 Email Subject: ${emailSubject || 'N/A'}
+Email Received Date: ${emailReceivedDate ? emailReceivedDate.toISOString() : 'N/A'}
 
 Email Content:
 ${emailContent}
@@ -42,7 +49,7 @@ ${emailContent}
 Extract the following information and respond ONLY with a valid JSON object (no markdown, no code blocks, just raw JSON):
 
 {
-  "date": "YYYY-MM-DD format (use today's date if not specified, current date is ${new Date().toISOString().split('T')[0]})",
+  "date": "YYYY-MM-DD format",
   "payee": "merchant/vendor name",
   "amount": number (NEGATIVE for purchases/expenses/withdrawals, POSITIVE for deposits/income)",
   "transactionType": "purchase" | "deposit" | "withdrawal" | "transfer" | "fee" | "unknown",
@@ -50,11 +57,16 @@ Extract the following information and respond ONLY with a valid JSON object (no 
   "confidence": "high" | "medium" | "low" (high if all details are clear, medium if some details inferred, low if uncertain)"
 }
 
-Rules:
+CRITICAL DATE RULES:
+1. FIRST PRIORITY: Extract the transaction date from the email body/content (look for phrases like "Transaction Date:", "Date:", "On [date]", "Purchased on", etc.)
+2. SECOND PRIORITY: If no transaction date is found in the email body, use the Email Received Date provided above: ${fallbackDate}
+3. NEVER use today's date unless the email was received today and contains no date information
+4. The date should reflect when the actual transaction occurred, not when the email was sent/received
+
+Other Rules:
 - Amount must be NEGATIVE for purchases, debits, expenses, withdrawals, and fees
 - Amount must be POSITIVE for deposits, credits, income, and refunds
 - Use the merchant name as payee (e.g., "TOTAL-LIGUANEA-COSTAL" not "Scotiabank")
-- Extract the exact transaction date if provided, otherwise use today's date
 - Be concise with payee names, remove unnecessary prefixes/suffixes
 - Only return the JSON object, nothing else`;
 

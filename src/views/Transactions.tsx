@@ -121,7 +121,7 @@ export default function Transactions() {
         // Parse email content
         try {
           const emailContent = email.htmlContent || email.textContent || '';
-          const parsed = await parseEmailWithGemini(emailContent, email.subject);
+          const parsed = await parseEmailWithGemini(emailContent, email.subject, email.receivedDate);
 
           if (!parsed) {
             console.log(`   ⚠️ SKIPPED: Failed to parse transaction details`);

@@ -48,7 +48,7 @@ export const processEmailTransaction = async (
 
     // 2. Parse email content with Gemini
     const emailContent = email.htmlContent || email.textContent || '';
-    const parsed = await parseEmailWithGemini(emailContent, email.subject);
+    const parsed = await parseEmailWithGemini(emailContent, email.subject, email.receivedDate);
 
     if (!parsed) {
       return {
