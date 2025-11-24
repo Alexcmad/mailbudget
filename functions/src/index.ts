@@ -12,6 +12,7 @@ interface ParsedTransaction {
   payee: string;
   amount: number;
   transactionType: 'purchase' | 'deposit' | 'withdrawal' | 'transfer' | 'fee' | 'unknown';
+  category_id?: string | null; // ID of matching category, or null if no match
   notes?: string;
   confidence: 'high' | 'medium' | 'low';
 }
@@ -253,7 +254,8 @@ async function parseEmailWithGemini(
   emailContent: string,
   emailSubject: string,
   geminiApiKey: string,
-  emailReceivedDate?: Date
+  emailReceivedDate?: Date,
+  categories?: Array<{ id: string; name: string; group: string }>
 ): Promise<ParsedTransaction | null> {
   const genAI = new GoogleGenerativeAI(geminiApiKey);
   const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
@@ -261,11 +263,19 @@ async function parseEmailWithGemini(
   const currentDate = new Date().toISOString().split('T')[0];
   const receivedDateStr = emailReceivedDate ? emailReceivedDate.toISOString().split('T')[0] : currentDate;
   
+  // Format categories for the prompt
+  const categoriesList = categories && categories.length > 0
+    ? categories.map(cat => `  - "${cat.name}" (ID: ${cat.id}, Group: ${cat.group})`).join('\n')
+    : '  (No categories available)';
+  
   const prompt = `You are a financial transaction parser. Analyze this bank notification email and extract transaction details.
 
 Email Subject: ${emailSubject || 'N/A'}
 Email Received Date: ${emailReceivedDate ? emailReceivedDate.toISOString() : 'N/A'}
 Current Date: ${currentDate}
+
+Available Categories:
+${categoriesList}
 
 Email Content:
 ${emailContent}
@@ -277,9 +287,22 @@ Extract the following information and respond ONLY with a valid JSON object (no 
   "payee": "merchant/vendor name",
   "amount": number (NEGATIVE for purchases/expenses/withdrawals, POSITIVE for deposits/income)",
   "transactionType": "purchase" | "deposit" | "withdrawal" | "transfer" | "fee" | "unknown",
+  "category_id": "category ID string from the list above, or null if no good match",
   "notes": "any additional details or original amount if currency conversion occurred",
   "confidence": "high" | "medium" | "low" (high if all details are clear, medium if some details inferred, low if uncertain)"
 }
+
+CATEGORIZATION RULES:
+1. Analyze the payee name, transaction type, and any context from the email
+2. Match the transaction to the MOST APPROPRIATE category from the list above
+3. Use the exact category ID (e.g., "cat_123") from the list, not the category name
+4. Consider:
+   - Payee name patterns (e.g., "GROCERY STORE" → "Groceries", "GAS STATION" → "Gas/Fuel")
+   - Transaction type (purchases go to expense categories, deposits to income categories)
+   - Common merchant patterns (restaurants → "Dining Out", gas stations → "Gas/Fuel", etc.)
+5. If no good match exists, set "category_id" to null
+6. Be smart about matching - "WALMART" could be "Groceries" or "Household Items" depending on context
+7. For income/deposits, look for income-related categories if available
 
 CRITICAL DATE EXTRACTION RULES - READ CAREFULLY:
 
@@ -423,6 +446,13 @@ export const syncEmailsHourly = functions.pubsub
             ...doc.data(),
           }));
 
+          // Get user's categories for auto-categorization
+          const categoriesSnapshot = await db.collection(`users/${userId}/categories`).get();
+          const categories = categoriesSnapshot.docs.map((doc: admin.firestore.QueryDocumentSnapshot) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+
           const linkedDomains = accounts
             .map((account: any) => account.email_domain)
             .filter((domain: any): domain is string => !!domain);
@@ -467,9 +497,19 @@ export const syncEmailsHourly = functions.pubsub
                 continue;
               }
 
-              // Parse email
+              // Parse email (with categories for auto-categorization)
               const emailContent = email.htmlContent || email.textContent || '';
-              const parsed = await parseEmailWithGemini(emailContent, email.subject, geminiApiKey, email.receivedDate);
+              const parsed = await parseEmailWithGemini(
+                emailContent, 
+                email.subject, 
+                geminiApiKey, 
+                email.receivedDate,
+                categories.map((cat: any) => ({ 
+                  id: cat.id, 
+                  name: cat.name || '', 
+                  group: cat.group || '' 
+                }))
+              );
 
               if (!parsed) {
                 console.log(`Failed to parse email from ${email.from}`);
@@ -491,14 +531,14 @@ export const syncEmailsHourly = functions.pubsub
                 }
               }
 
-              // Create transaction
+              // Create transaction (use auto-categorized category_id if available)
               await transactionsRef.add({
                 date: parsed.date,
                 payee: parsed.payee,
                 amount: parsed.amount,
                 account_id: account.id,
                 status: 'uncleared',
-                category_id: null,
+                category_id: parsed.category_id || null, // Use auto-categorized category or null
                 notes: parsed.notes || `Auto-imported from ${email.from}`,
                 original_email_id: email.messageId,
                 created_at: admin.firestore.FieldValue.serverTimestamp(),

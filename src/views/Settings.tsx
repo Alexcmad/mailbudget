@@ -8,7 +8,7 @@ import DomainSearchDropdown from '../components/DomainSearchDropdown.tsx';
 import { processEmailTransaction } from '../services/emailParser.ts';
 
 export default function Settings() {
-  const { accounts } = useStore();
+  const { accounts, categories } = useStore();
   const uid = useAuth();
   const [emailDomains, setEmailDomains] = useState<Record<string, string>>(
     accounts.reduce((acc, account) => {
@@ -183,7 +183,7 @@ export default function Settings() {
         console.log(`\n📧 Processing email from "${email.from}"`);
         console.log(`   Subject: "${email.subject}"`);
 
-        const result = await processEmailTransaction(uid, email, accounts);
+        const result = await processEmailTransaction(uid, email, accounts, categories);
 
         if (result.success) {
           imported++;

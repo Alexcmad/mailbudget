@@ -121,7 +121,12 @@ export default function Transactions() {
         // Parse email content
         try {
           const emailContent = email.htmlContent || email.textContent || '';
-          const parsed = await parseEmailWithGemini(emailContent, email.subject, email.receivedDate);
+          const parsed = await parseEmailWithGemini(
+            emailContent, 
+            email.subject, 
+            email.receivedDate,
+            categories.map(cat => ({ id: cat.id, name: cat.name, group: cat.group }))
+          );
 
           if (!parsed) {
             console.log(`   ⚠️ SKIPPED: Failed to parse transaction details`);
@@ -202,7 +207,7 @@ export default function Transactions() {
         const pending = pendingTransactions[index];
         if (!pending) continue;
 
-        const result = await processEmailTransaction(uid, pending.email, accounts);
+        const result = await processEmailTransaction(uid, pending.email, accounts, categories);
 
         if (result.success) {
           imported++;

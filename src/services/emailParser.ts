@@ -1,6 +1,6 @@
 import { parseEmailWithGemini, extractEmailDomain } from './gemini';
 import { addTransaction } from './firestore';
-import type { Account } from '../types';
+import type { Account, Category } from '../types';
 
 export interface EmailData {
   from: string;
@@ -33,7 +33,8 @@ export const findAccountByEmailDomain = (
 export const processEmailTransaction = async (
   uid: string,
   email: EmailData,
-  accounts: Account[]
+  accounts: Account[],
+  categories?: Category[]
 ): Promise<{ success: boolean; transactionId?: string; error?: string }> => {
   try {
     // 1. Find matching account by email domain
@@ -46,9 +47,14 @@ export const processEmailTransaction = async (
       };
     }
 
-    // 2. Parse email content with Gemini
+    // 2. Parse email content with Gemini (include categories for auto-categorization)
     const emailContent = email.htmlContent || email.textContent || '';
-    const parsed = await parseEmailWithGemini(emailContent, email.subject, email.receivedDate);
+    const parsed = await parseEmailWithGemini(
+      emailContent, 
+      email.subject, 
+      email.receivedDate,
+      categories?.map(cat => ({ id: cat.id, name: cat.name, group: cat.group }))
+    );
 
     if (!parsed) {
       return {
@@ -63,14 +69,14 @@ export const processEmailTransaction = async (
       // You might want to flag this for manual review
     }
 
-    // 4. Create transaction
+    // 4. Create transaction (use auto-categorized category_id if available)
     const transactionId = await addTransaction(uid, {
       date: parsed.date,
       payee: parsed.payee,
       amount: parsed.amount,
       account_id: account.id,
       status: 'uncleared', // Mark as uncleared initially
-      category_id: null, // User can categorize later
+      category_id: parsed.category_id || null, // Use auto-categorized category or null
       notes: parsed.notes || `Auto-imported from ${email.from}`,
       original_email_id: email.messageId,
     });
@@ -94,7 +100,8 @@ export const processEmailTransaction = async (
 export const processBatchEmails = async (
   uid: string,
   emails: EmailData[],
-  accounts: Account[]
+  accounts: Account[],
+  categories?: Category[]
 ): Promise<{
   processed: number;
   successful: number;
@@ -108,7 +115,7 @@ export const processBatchEmails = async (
 
   for (const email of emails) {
     processed++;
-    const result = await processEmailTransaction(uid, email, accounts);
+    const result = await processEmailTransaction(uid, email, accounts, categories);
 
     if (result.success) {
       successful++;
