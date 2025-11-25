@@ -1,6 +1,7 @@
 import { parseEmailWithGemini, extractEmailDomain } from './gemini';
 import { addTransaction } from './firestore';
 import type { Account, Category } from '../types';
+import { checkTransactionFlags } from './transactionFlags';
 
 export interface EmailData {
   from: string;
@@ -63,11 +64,8 @@ export const processEmailTransaction = async (
       };
     }
 
-    // 3. Check confidence level
-    if (parsed.confidence === 'low') {
-      console.warn('Low confidence transaction parse:', parsed);
-      // You might want to flag this for manual review
-    }
+    // 3. Check for flags (currency mismatch, low confidence, etc.)
+    const flags = checkTransactionFlags(email, parsed);
 
     // 4. Create transaction (use auto-categorized category_id if available)
     const transactionId = await addTransaction(uid, {
@@ -79,6 +77,7 @@ export const processEmailTransaction = async (
       category_id: parsed.category_id || null, // Use auto-categorized category or null
       notes: parsed.notes || `Auto-imported from ${email.from}`,
       original_email_id: email.messageId,
+      flags: flags.length > 0 ? flags : undefined,
     });
 
     return {

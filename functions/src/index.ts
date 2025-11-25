@@ -531,6 +531,55 @@ export const syncEmailsHourly = functions.pubsub
                 }
               }
 
+              // Check for flags
+              const flags: Array<{ reason: string; message: string; created_at: string; resolved: boolean }> = [];
+              
+              // Currency mismatch flag
+              const content = (email.htmlContent || email.textContent || '').toLowerCase();
+              if (content.includes('please note, the dollar amount reported is in the currency of the account') ||
+                  content.includes('dollar amount reported is in the currency') ||
+                  content.includes('amount reported is in the currency of the account')) {
+                flags.push({
+                  reason: 'currency_mismatch',
+                  message: 'Transaction amount may be in USD instead of JMD. Please verify the currency.',
+                  created_at: new Date().toISOString(),
+                  resolved: false,
+                });
+              }
+              
+              // Low confidence flag
+              if (parsed.confidence === 'low') {
+                flags.push({
+                  reason: 'low_confidence',
+                  message: 'Transaction was parsed with low confidence. Please review the details.',
+                  created_at: new Date().toISOString(),
+                  resolved: false,
+                });
+              }
+              
+              // Missing category flag
+              if (!parsed.category_id) {
+                flags.push({
+                  reason: 'missing_category',
+                  message: 'Transaction was not automatically categorized. Please assign a category.',
+                  created_at: new Date().toISOString(),
+                  resolved: false,
+                });
+              }
+              
+              // Unusual amount flag
+              const amount = Math.abs(parsed.amount);
+              if (amount > 10000 || amount < 0.01) {
+                flags.push({
+                  reason: 'unusual_amount',
+                  message: amount > 10000 
+                    ? `Large transaction amount: $${amount.toLocaleString()}. Please verify.`
+                    : 'Very small transaction amount. Please verify.',
+                  created_at: new Date().toISOString(),
+                  resolved: false,
+                });
+              }
+
               // Create transaction (use auto-categorized category_id if available)
               await transactionsRef.add({
                 date: parsed.date,
@@ -541,6 +590,7 @@ export const syncEmailsHourly = functions.pubsub
                 category_id: parsed.category_id || null, // Use auto-categorized category or null
                 notes: parsed.notes || `Auto-imported from ${email.from}`,
                 original_email_id: email.messageId,
+                flags: flags.length > 0 ? flags : undefined,
                 created_at: admin.firestore.FieldValue.serverTimestamp(),
               });
 

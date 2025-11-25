@@ -16,6 +16,13 @@ export type Category = {
   available: number;
 }
 
+export type TransactionFlag = {
+  reason: string;
+  message: string;
+  created_at?: string;
+  resolved?: boolean;
+}
+
 export type Transaction = {
   id: string;
   date: string;
@@ -26,6 +33,7 @@ export type Transaction = {
   status: 'cleared' | 'uncleared' | 'reconciled';
   account_id?: string;
   notes?: string;
+  flags?: TransactionFlag[];
 }
 
 export type UserConfig = {
